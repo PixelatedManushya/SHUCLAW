@@ -1,0 +1,28 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.shuclaw.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.shuclaw.app'
+        minSdk 26
+        targetSdk 34
+        versionCode 4
+        versionName '1.3'
+    }
+
+    // The controller screen is the same page the PC serves to browsers, so there is one copy to maintain
+    sourceSets {
+        main {
+            assets.srcDirs = ['../../static']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

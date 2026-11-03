@@ -1,0 +1,9 @@
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}
+
+// Optional: keep build output outside the source folder (set SHUCLAW_BUILD_DIR before building)
+def outRoot = System.getenv('SHUCLAW_BUILD_DIR')
+if (outRoot) {
+    allprojects { layout.buildDirectory = file("$outRoot/${project.name}") }
+}

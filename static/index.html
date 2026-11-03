@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e1016">
+<meta name="mobile-web-app-capable" content="yes">
+<title>SHUCLAW</title>
+<style>
+  :root {
+    --scale: 1;          /* button size setting */
+    --stick: 1;          /* stick size setting */
+    --b: calc(15vh * var(--scale));
+    --bg: #0e1016;
+    --face: rgba(255,255,255,.06);
+    --edge: rgba(255,255,255,.14);
+    --text: #e8ebf2;
+    --muted: #8a90a0;
+    --a: #5ad16c; --bb: #ff5d5d; --x: #4ea6ff; --y: #ffd23f;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    touch-action: none; user-select: none; -webkit-user-select: none; overscroll-behavior: none;
+  }
+  #pad {
+    position: fixed; inset: 0;
+    background: radial-gradient(120vh 90vh at 50% 120%, #1a1f2c 0%, var(--bg) 70%);
+  }
+
+  /* ---------- shoulder buttons: hug the top corners where thumbs reach easily ---------- */
+  .sh {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; letter-spacing: .05em; color: var(--muted);
+    background: var(--face); border: 1px solid var(--edge);
+    transition: transform .06s, background .06s, color .06s;
+  }
+  .sh.trig { top: 0; height: calc(17vh * var(--scale)); width: 25vw; font-size: 4.2vh; }
+  .sh.bump { top: calc(17vh * var(--scale) + 1.2vh); height: calc(13vh * var(--scale)); width: 19vw; font-size: 3.6vh; }
+  .sh.l { left: 0; border-left: 0; border-radius: 0 0 4vh 0; }
+  .sh.r { right: 0; border-right: 0; border-radius: 0 0 0 4vh; }
+  .sh.trig { border-top: 0; }
+  .sh.on { background: rgba(255,255,255,.22); color: #fff; }
+
+  /* ---------- center: menu buttons ---------- */
+  #mid {
+    position: absolute; left: 50%; top: 3vh; transform: translateX(-50%);
+    display: flex; gap: 3vw; align-items: center;
+  }
+  .small {
+    width: 11vh; height: 7vh; border-radius: 4vh; display: flex; align-items: center; justify-content: center;
+    background: var(--face); border: 1px solid var(--edge); color: var(--muted); transition: transform .06s, background .06s;
+  }
+  .small svg { width: 3.6vh; height: 3.6vh; fill: currentColor; }
+  .small.guide { width: 9vh; height: 9vh; border-radius: 50%; }
+  .small.guide svg { width: 5vh; height: 5vh; }
+  .small.on { background: rgba(255,255,255,.25); color: #fff; transform: scale(.94); }
+
+  #status {
+    position: absolute; left: 50%; bottom: 3vh; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 1.6vw;
+  }
+  #conn {
+    font-size: 3vh; color: var(--muted); padding: 1.2vh 2.4vh; border-radius: 3vh;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); white-space: nowrap;
+    display: flex; align-items: center; gap: 1vh;
+  }
+  #conn i { width: 1.6vh; height: 1.6vh; border-radius: 50%; background: #e0a030; display: inline-block; }
+  #conn.ok i { background: var(--a); }
+  #conn.bad i { background: var(--bb); }
+  #gear { width: 7vh; height: 7vh; border-radius: 50%; }
+
+  /* ---------- stick zones (floating: the stick appears wherever your thumb lands) ---------- */
+  .zone { position: absolute; }
+  #zoneL { left: 0; top: calc(32vh * var(--scale) + 2vh); width: 31vw; bottom: 0; }
+  #zoneR { left: 53vw; top: 38vh; width: 19vw; bottom: 0; }
+  .showzones .zone { background: rgba(78,166,255,.06); outline: 1px dashed rgba(78,166,255,.35); }
+
+  .stick {
+    position: absolute; width: calc(28vh * var(--stick)); height: calc(28vh * var(--stick));
+    margin: calc(-14vh * var(--stick)) 0 0 calc(-14vh * var(--stick));
+    border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(255,255,255,.05) 0 55%, rgba(255,255,255,.09) 56% 100%);
+    border: 1px solid var(--edge); opacity: .55; transition: opacity .12s;
+  }
+  .stick .knob {
+    position: absolute; left: 50%; top: 50%; width: 46%; height: 46%; margin: -23% 0 0 -23%;
+    border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a4152, #232836);
+    border: 1px solid rgba(255,255,255,.22); box-shadow: 0 1vh 2.5vh rgba(0,0,0,.45);
+  }
+  .stick.active { opacity: 1; }
+  .stick.click .knob { background: #4a5266; }
+
+  /* ---------- d-pad ---------- */
+  #dpad {
+    position: absolute; left: 35vw; top: 72vh;
+    width: calc(30vh * var(--scale)); height: calc(30vh * var(--scale));
+    transform: translate(-50%, -50%);
+  }
+  #dpad .arm {
+    position: absolute; width: 34%; height: 36%; background: var(--face); border: 1px solid var(--edge);
+    display: flex; align-items: center; justify-content: center; color: var(--muted); transition: background .06s;
+  }
+  #dpad .arm svg { width: 45%; fill: currentColor; }
+  #dpad .up    { left: 33%; top: 0;    border-radius: 1.6vh 1.6vh .4vh .4vh; }
+  #dpad .down  { left: 33%; bottom: 0; border-radius: .4vh .4vh 1.6vh 1.6vh; }
+  #dpad .left  { top: 33%; left: 0;  width: 36%; height: 34%; border-radius: 1.6vh .4vh .4vh 1.6vh; }
+  #dpad .right { top: 33%; right: 0; width: 36%; height: 34%; border-radius: .4vh 1.6vh 1.6vh .4vh; }
+  #dpad .hub { position: absolute; left: 33%; top: 33%; width: 34%; height: 34%; background: var(--face); }
+  #dpad .arm.on { background: rgba(255,255,255,.25); color: #fff; }
+
+  /* ---------- face buttons: sit in the natural arc of the right thumb ---------- */
+  #abxy {
+    position: absolute; left: 85vw; top: 61vh; width: 0; height: 0;
+  }
+  .face {
+    position: absolute; width: var(--b); height: var(--b); margin: calc(var(--b) / -2) 0 0 calc(var(--b) / -2);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: calc(var(--b) * .42);
+    background: var(--face); border: 2px solid currentColor; transition: transform .06s, background .06s;
+  }
+  .face[data-btn=A] { color: var(--a);  left: 0; top: calc(var(--b) * 1.05); }
+  .face[data-btn=B] { color: var(--bb); left: calc(var(--b) * 1.1); top: 0; }
+  .face[data-btn=X] { color: var(--x);  left: calc(var(--b) * -1.1); top: 0; }
+  .face[data-btn=Y] { color: var(--y);  left: 0; top: calc(var(--b) * -1.05); }
+  .face.on { background: color-mix(in srgb, currentColor 38%, transparent); transform: scale(.93); }
+
+  /* ---------- overlays ---------- */
+  .overlay {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10;
+    background: rgba(8,10,14,.92); text-align: center; padding: 4vh 6vw;
+  }
+  .overlay h1 { margin: 0 0 2vh; font-size: 7vh; letter-spacing: .02em; }
+  .overlay p { margin: 1vh 0; color: var(--muted); font-size: 3.4vh; line-height: 1.45; }
+  .go {
+    margin-top: 4vh; display: inline-block; padding: 2.4vh 6vh; border-radius: 5vh; font-size: 4vh; font-weight: 700;
+    background: var(--a); color: #08210f;
+  }
+  #rotate { display: none; }
+  @media (orientation: portrait) {
+    #rotate { display: flex; z-index: 20; }
+    #rotate h1 { font-size: 3.5vh; }
+    #rotate p { font-size: 2vh; }
+  }
+  .hidden { display: none !important; }
+
+  #settings .panel {
+    background: #171a23; border: 1px solid var(--edge); border-radius: 3vh; padding: 3vh 4vh;
+    width: min(92vw, 110vh); max-height: 92vh; overflow-y: auto; text-align: left; touch-action: pan-y;
+  }
+  #settings h2 { margin: 0 0 2vh; font-size: 4.4vh; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 3vw; padding: 1.6vh 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 3.4vh; }
+  .row span small { display: block; color: var(--muted); font-size: 2.6vh; }
+  .row input[type=range] { width: 40vw; accent-color: var(--a); touch-action: pan-x; }
+  .row input[type=checkbox] { width: 4.5vh; height: 4.5vh; accent-color: var(--a); }
+  .btns { display: flex; gap: 2vw; margin-top: 2.4vh; }
+  .btns button {
+    flex: 1; padding: 2vh; font-size: 3.4vh; border-radius: 2vh; border: 1px solid var(--edge);
+    background: var(--face); color: var(--text); font-family: inherit;
+  }
+  .btns button.primary, .manual button { background: var(--a); color: #08210f; border: 0; font-weight: 700; }
+  body:not(.app) .app-only, body.app .web-only { display: none; }
+  .pair { display: flex; align-items: center; gap: 3vw; }
+  .mini {
+    padding: 1.4vh 3vh; font-size: 3vh; border-radius: 1.6vh; border: 1px solid var(--edge);
+    background: var(--face); color: var(--text); font-family: inherit; white-space: nowrap;
+  }
+  .mini.on { background: var(--a); color: #08210f; }
+
+  #pick .panel, #settings .panel {
+    background: #171a23; border: 1px solid var(--edge); border-radius: 3vh; padding: 3vh 4vh;
+    width: min(92vw, 110vh); max-height: 92vh; overflow-y: auto; text-align: left; touch-action: pan-y;
+  }
+  #pick h2 { margin: 0 0 1vh; font-size: 4.4vh; }
+  .hint { color: var(--muted); font-size: 3vh; margin: 0 0 2vh; }
+  .pc {
+    display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1.4vh;
+    padding: 2.2vh 3vh; border-radius: 2vh; border: 1px solid var(--edge); background: var(--face);
+    color: var(--text); font: inherit; font-size: 3.6vh; text-align: left;
+  }
+  .pc span { color: var(--muted); font-size: 2.8vh; }
+  .pc.usb span { color: var(--a); }
+  .manual { display: flex; gap: 2vw; margin-top: 2.4vh; }
+  .manual input {
+    flex: 1; padding: 2vh 2.4vh; font-size: 3.4vh; border-radius: 2vh; border: 1px solid var(--edge);
+    background: #0e1016; color: var(--text); font-family: inherit; user-select: text; -webkit-user-select: text;
+  }
+  .manual button { padding: 2vh 4vh; font-size: 3.4vh; border-radius: 2vh; font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="pad">
+  <div class="sh trig l" data-btn="LT">LT</div>
+  <div class="sh bump l" data-btn="LB">LB</div>
+  <div class="sh trig r" data-btn="RT">RT</div>
+  <div class="sh bump r" data-btn="RB">RB</div>
+
+  <div id="mid">
+    <div class="small" data-btn="BACK" title="Back / View">
+      <svg viewBox="0 0 24 24"><path d="M4 6h10v2H4zm0 5h10v2H4zm0 5h10v2H4zm12-9h4v10h-4z"/></svg>
+    </div>
+    <div class="small guide" data-btn="GUIDE" title="Home / Guide">
+      <svg viewBox="0 0 24 24"><path d="M12 3 2.5 11.2l1.3 1.5L5 11.7V20h5.5v-5.5h3V20H19v-8.3l1.2 1 1.3-1.5z"/></svg>
+    </div>
+    <div class="small" data-btn="START" title="Start / Menu">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+    </div>
+  </div>
+
+  <div class="zone" id="zoneL" data-stick="L"></div>
+  <div class="zone" id="zoneR" data-stick="R"></div>
+
+  <div id="dpad" data-dpad>
+    <div class="hub"></div>
+    <div class="arm up"    data-dir="UP"><svg viewBox="0 0 10 10"><path d="M5 2 9 8H1z"/></svg></div>
+    <div class="arm down"  data-dir="DOWN"><svg viewBox="0 0 10 10"><path d="M5 8 9 2H1z"/></svg></div>
+    <div class="arm left"  data-dir="LEFT"><svg viewBox="0 0 10 10"><path d="M2 5 8 1v8z"/></svg></div>
+    <div class="arm right" data-dir="RIGHT"><svg viewBox="0 0 10 10"><path d="M8 5 2 1v8z"/></svg></div>
+  </div>
+
+  <div id="abxy">
+    <div class="face" data-btn="Y">Y</div>
+    <div class="face" data-btn="X">X</div>
+    <div class="face" data-btn="B">B</div>
+    <div class="face" data-btn="A">A</div>
+  </div>
+
+  <div class="stick" id="stickL"><div class="knob"></div></div>
+  <div class="stick" id="stickR"><div class="knob"></div></div>
+
+  <div id="status">
+    <div id="conn"><i></i><span>Connecting…</span></div>
+    <div class="small" id="gear" title="Settings">
+      <svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.7 7.7 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.7 7.7 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="start">
+  <div>
+    <h1>SHUCLAW</h1>
+    <p>Hold the phone sideways with both hands, thumbs resting on the screen.</p>
+    <p>Rest your thumbs on the sticks. Quick tap on a stick = L3 / R3 click.<br>Prefer sticks that appear under your thumb? Turn on Floating sticks in ⚙.</p>
+    <div class="go">Tap to start</div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="settings">
+  <div class="panel">
+    <h2>Settings</h2>
+    <div class="row"><span>Button size</span><input type="range" id="s-scale" min="80" max="130" step="5"></div>
+    <div class="row"><span>Stick size<small>bigger = finer control</small></span><input type="range" id="s-stick" min="70" max="140" step="5"></div>
+    <div class="row"><span>Floating sticks<small>off: sticks stay in place · on: a stick appears under your thumb</small></span><input type="checkbox" id="s-float"></div>
+    <div class="row"><span>Stick dead zone<small>raise if your character drifts</small></span><input type="range" id="s-dz" min="0" max="25" step="1"></div>
+    <div class="row"><span>Button vibration<small id="vib-label"></small></span><input type="range" id="s-vib" min="0" max="3" step="1"></div>
+    <div class="row"><span>Game rumble<small>feel the game's vibration: gunshots, engines, hits</small></span>
+      <span class="pair"><button id="s-rtest" class="mini">Test rumble</button><input type="checkbox" id="s-rumble"></span></div>
+    <div class="row"><span>Tap stick area = L3 / R3</span><input type="checkbox" id="s-tap"></div>
+    <div class="row"><span>Show stick areas</span><input type="checkbox" id="s-zones"></div>
+    <div class="btns">
+      <button id="s-full" class="web-only">Full screen</button>
+      <button id="s-pc" class="app-only">Change PC</button>
+      <button id="s-reset">Reset</button>
+      <button id="s-close" class="primary">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="pick">
+  <div class="panel">
+    <h2>Connect to your PC</h2>
+    <p class="hint" id="pick-msg">Run start.bat on the PC. Connect with a USB cable (USB tethering on) or the same Wi-Fi.</p>
+    <div id="pcs"></div>
+    <div class="btns"><button id="rescan">Search again</button></div>
+    <div class="manual">
+      <input id="manual" placeholder="Or type the PC address, e.g. 192.168.1.5" inputmode="decimal" autocomplete="off">
+      <button id="manual-go" class="primary">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="rotate"><div><h1>Rotate your phone</h1><p>SHUCLAW works in landscape.</p></div></div>
+
+<script>
+// Bit order must match BUTTON_NAMES in server.py
+const BUTTONS = ["A","B","X","Y","LB","RB","BACK","START","GUIDE","LS","RS","UP","DOWN","LEFT","RIGHT"];
+const BIT = Object.fromEntries(BUTTONS.map((b, i) => [b, 1 << i]));
+const $ = id => document.getElementById(id);
+
+// ---------------- settings ----------------
+const NATIVE = window.ShuclawNative || null;   // present when running inside the Android app
+document.body.classList.toggle("app", !!NATIVE);
+
+const DEFAULTS = { scale: 100, stick: 100, dz: 8, vibLevel: 2, rumble: true, tap: true, zones: false, floating: false };
+let S = { ...DEFAULTS };
+try { Object.assign(S, JSON.parse(localStorage.getItem("shuclaw") || "{}")); } catch {}
+function saveSettings() { try { localStorage.setItem("shuclaw", JSON.stringify(S)); } catch {} }
+function applySettings() {
+  document.documentElement.style.setProperty("--scale", S.scale / 100);
+  document.documentElement.style.setProperty("--stick", S.stick / 100);
+  $("pad").classList.toggle("showzones", S.zones);
+  $("s-scale").value = S.scale; $("s-stick").value = S.stick; $("s-dz").value = S.dz;
+  $("s-vib").value = S.vibLevel; $("vib-label").textContent = ["Off", "Light", "Medium", "Strong"][S.vibLevel];
+  $("s-rumble").checked = S.rumble; $("s-tap").checked = S.tap; $("s-zones").checked = S.zones;
+  $("s-float").checked = S.floating;
+}
+for (const [id, key, num] of [["s-float","floating",0],["s-scale","scale",1],["s-stick","stick",1],["s-dz","dz",1],["s-vib","vibLevel",1],["s-rumble","rumble",0],["s-tap","tap",0],["s-zones","zones",0]]) {
+  $(id).addEventListener("input", e => {
+    S[key] = num ? +e.target.value : e.target.checked; applySettings(); saveSettings();
+    if (key === "vibLevel") buzz();          // preview the new strength
+    if (key === "rumble" && !S.rumble) rumble(0, 0);
+  });
+}
+$("s-reset").onclick = () => { S = { ...DEFAULTS }; applySettings(); saveSettings(); };
+$("s-close").onclick = () => $("settings").classList.add("hidden");
+$("s-full").onclick = () => goFullscreen();
+applySettings();
+
+// kind: "press" (button), "tick" (d-pad / sliding between buttons), "click" (L3/R3)
+function buzz(kind = "press") {
+  if (!S.vibLevel) return;
+  if (NATIVE) NATIVE.haptic(kind, S.vibLevel);
+  else if (navigator.vibrate) navigator.vibrate([0, 18, 30, 45][S.vibLevel] + (kind === "click" ? 10 : 0));
+}
+
+// game rumble from the PC, motors 0-255
+function rumble(large, small, force = false) {
+  if (!S.rumble && !force) large = small = 0;
+  if (NATIVE) NATIVE.rumble(large, small);
+  else if (navigator.vibrate) navigator.vibrate(Math.max(large, small) > 40 ? 2000 : 0);
+}
+
+// same path as game rumble, without the PC: if this vibrates but games don't, the problem is the connection
+$("s-rtest").onclick = () => {
+  const b = $("s-rtest");
+  if (b.classList.contains("on")) return;
+  b.classList.add("on"); b.textContent = "Rumbling…";
+  rumble(200, 0, true);
+  setTimeout(() => rumble(90, 0, true), 700);
+  setTimeout(() => { rumble(0, 0, true); b.classList.remove("on"); b.textContent = "Test rumble"; }, 1400);
+};
+
+// ---------------- input state ----------------
+const pointers = new Map();   // pointerId -> { kind: "btn"|"dpad"|"stick", ... }
+const sticks = {
+  L: { el: $("stickL"), home: () => ({ x: innerWidth * .155, y: innerHeight * .68 }), x: 0, y: 0, pid: null },
+  R: { el: $("stickR"), home: () => ({ x: innerWidth * .625, y: innerHeight * .70 }), x: 0, y: 0, pid: null },
+};
+let pulse = 0;   // short L3/R3 presses from quick taps
+
+function placeStick(s, cx, cy, kx = 0, ky = 0) {
+  s.el.style.left = cx + "px"; s.el.style.top = cy + "px";
+  s.el.firstElementChild.style.transform = `translate(${kx}px, ${ky}px)`;
+}
+function resetStick(s) {
+  const h = s.home(); placeStick(s, h.x, h.y);
+  s.el.classList.remove("active"); s.x = s.y = 0; s.pid = null;
+}
+const stickRadius = () => innerHeight * .14 * (S.stick / 100);
+
+function moveStick(p, x, y) {
+  const s = sticks[p.stick], R = stickRadius();
+  let dx = x - p.cx, dy = y - p.cy, d = Math.hypot(dx, dy);
+  if (d > R) {
+    if (S.floating) {      // base follows the thumb so you never "fall off" the stick
+      p.cx += dx * (1 - R / d); p.cy += dy * (1 - R / d);
+      dx = x - p.cx; dy = y - p.cy;
+    } else {               // fixed stick: the knob stops at the edge
+      dx *= R / d; dy *= R / d;
+    }
+    d = R;
+  }
+  p.maxD = Math.max(p.maxD, Math.hypot(x - p.sx, y - p.sy));
+  const mag = d / R, dz = S.dz / 100;
+  const k = mag <= dz ? 0 : (mag - dz) / (1 - dz) / mag;
+  s.x = dx / R * k; s.y = -dy / R * k;   // up on screen = up on the stick
+  placeStick(s, p.cx, p.cy, dx, dy);
+}
+
+function dpadDir(x, y) {
+  const r = $("dpad").getBoundingClientRect();
+  const dx = x - (r.left + r.width / 2), dy = y - (r.top + r.height / 2), d = Math.hypot(dx, dy);
+  if (d < r.width * .12) return 0;
+  const ax = dx / d, ay = dy / d;  // 8-way: diagonals when between two arms
+  return (ay < -.38 ? BIT.UP : 0) | (ay > .38 ? BIT.DOWN : 0) | (ax < -.38 ? BIT.LEFT : 0) | (ax > .38 ? BIT.RIGHT : 0);
+}
+
+function onDown(e) {
+  if (!$("settings").classList.contains("hidden")) return;
+  const t = e.target.closest("[data-btn],[data-dpad],[data-stick],#gear");
+  if (!t) return;
+  e.preventDefault();
+  if (t.id === "gear") { $("settings").classList.remove("hidden"); return; }
+  if (t.dataset.btn) {
+    pointers.set(e.pointerId, { kind: "btn", btn: t.dataset.btn }); buzz();
+  } else if (t.hasAttribute("data-dpad")) {
+    const dir = dpadDir(e.clientX, e.clientY);
+    pointers.set(e.pointerId, { kind: "dpad", dir }); if (dir) buzz();
+  } else {
+    const s = sticks[t.dataset.stick];
+    if (s.pid !== null) return;       // that stick is already held by another finger
+    s.pid = e.pointerId; s.el.classList.add("active");
+    const c = S.floating ? { x: e.clientX, y: e.clientY } : s.home();   // fixed sticks never move
+    const p = { kind: "stick", stick: t.dataset.stick, cx: c.x, cy: c.y, sx: e.clientX, sy: e.clientY, maxD: 0, t0: performance.now() };
+    pointers.set(e.pointerId, p); moveStick(p, e.clientX, e.clientY);
+  }
+  update();
+}
+
+function onMove(e) {
+  const p = pointers.get(e.pointerId);
+  if (!p) return;
+  e.preventDefault();
+  if (p.kind === "stick") moveStick(p, e.clientX, e.clientY);
+  else if (p.kind === "dpad") {
+    const dir = dpadDir(e.clientX, e.clientY);
+    if (dir !== p.dir) { p.dir = dir; if (dir) buzz("tick"); }
+  } else if (p.kind === "btn") {
+    // slide your thumb between A/B/X/Y without lifting it
+    const el = document.elementFromPoint(e.clientX, e.clientY)?.closest(".face");
+    if (el && p.btn !== el.dataset.btn && "ABXY".includes(p.btn)) { p.btn = el.dataset.btn; buzz("tick"); }
+  }
+  update();
+}
+
+function onUp(e) {
+  const p = pointers.get(e.pointerId);
+  if (!p) return;
+  pointers.delete(e.pointerId);
+  if (p.kind === "stick") {
+    const s = sticks[p.stick];
+    const quick = performance.now() - p.t0 < 220 && p.maxD < stickRadius() * .3;
+    if (quick && S.tap && e.type === "pointerup") {
+      const bit = p.stick === "L" ? BIT.LS : BIT.RS;
+      pulse |= bit; s.el.classList.add("click"); buzz("click");
+      setTimeout(() => { pulse &= ~bit; s.el.classList.remove("click"); update(); }, 90);
+    }
+    resetStick(s);
+  }
+  update();
+}
+
+function releaseAll() {
+  pointers.clear(); pulse = 0; resetStick(sticks.L); resetStick(sticks.R); update();
+}
+
+const pad = $("pad");
+pad.addEventListener("pointerdown", onDown, { passive: false });
+addEventListener("pointermove", onMove, { passive: false });
+addEventListener("pointerup", onUp);
+addEventListener("pointercancel", onUp);
+addEventListener("contextmenu", e => e.preventDefault());
+addEventListener("blur", releaseAll);
+document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
+addEventListener("resize", () => { if (!sticks.L.pid) resetStick(sticks.L); if (!sticks.R.pid) resetStick(sticks.R); });
+
+// ---------------- state -> screen + PC ----------------
+const btnEls = [...document.querySelectorAll("[data-btn]")];
+const armEls = [...document.querySelectorAll("#dpad .arm")];
+let lastSent = "";
+
+function update() {
+  let mask = pulse, lt = 0, rt = 0;
+  const held = new Set();
+  for (const p of pointers.values()) {
+    if (p.kind === "btn") {
+      held.add(p.btn);
+      if (p.btn === "LT") lt = 1; else if (p.btn === "RT") rt = 1; else mask |= BIT[p.btn];
+    } else if (p.kind === "dpad") mask |= p.dir;
+  }
+  for (const el of btnEls) el.classList.toggle("on", held.has(el.dataset.btn));
+  for (const el of armEls) el.classList.toggle("on", !!(mask & BIT[el.dataset.dir]));
+  const r = v => Math.round(v * 1000) / 1000;
+  const msg = JSON.stringify([mask, r(sticks.L.x), r(sticks.L.y), r(sticks.R.x), r(sticks.R.y), lt, rt]);
+  if (msg !== lastSent && ws && ws.readyState === 1) { ws.send(msg); lastSent = msg; }
+}
+
+// ---------------- connection ----------------
+let ws = null, pingTimer = null, retryTimer = null, fails = 0;
+let HOST = location.host;   // in a browser the PC is whoever served this page
+if (NATIVE) { HOST = ""; try { HOST = localStorage.getItem("shuclaw-host") || ""; } catch {} }
+function setConn(cls, text) { $("conn").className = cls; $("conn").querySelector("span").textContent = text; }
+
+function connect() {
+  setConn("", "Connecting…");
+  const sock = ws = new WebSocket(`ws://${HOST}/ws`);
+  sock.onopen = () => {
+    fails = 0; lastSent = ""; update();
+    pingTimer = setInterval(() => sock.readyState === 1 && sock.send(JSON.stringify({ p: performance.now() })), 1000);
+  };
+  sock.onmessage = ev => {
+    const d = JSON.parse(ev.data);
+    if (d.p !== undefined) setConn("ok", `Player ${playerNo} · ${Math.round(performance.now() - d.p)} ms`);
+    else if (d.r) rumble(d.r[0], d.r[1]);
+    else if (d.hello) { playerNo = d.hello; setConn("ok", `Player ${playerNo}`); }
+    else if (d.error) setConn("bad", d.error);
+  };
+  sock.onclose = () => {
+    if (sock !== ws) return;    // an old connection we replaced on purpose
+    clearInterval(pingTimer); rumble(0, 0);
+    if (!$("conn").classList.contains("bad")) setConn("bad", "Disconnected – retrying");
+    if (NATIVE && ++fails >= 3 && pickHidden()) showPick(`Couldn't reach ${HOST}. Is start.bat running?`);
+    if (pickHidden()) retryTimer = setTimeout(connect, 1500);
+  };
+}
+let playerNo = 1;
+
+// ---------------- PC picker (Android app only) ----------------
+const pickHidden = () => $("pick").classList.contains("hidden");
+function showPick(msg) {
+  if (msg) $("pick-msg").textContent = msg;
+  $("settings").classList.add("hidden");
+  $("pick").classList.remove("hidden");
+  scan();
+}
+function scan() { $("rescan").textContent = "Searching…"; NATIVE.discover(); }
+window.onPcsFound = list => {          // called by the app with [{name, host, usb}]
+  $("rescan").textContent = "Search again";
+  const box = $("pcs"); box.replaceChildren();
+  if (!list.length) {
+    const p = document.createElement("p"); p.className = "hint";
+    p.textContent = "No PC found. Check that start.bat is running and the phone is on USB tethering or the same Wi-Fi.";
+    box.append(p);
+  }
+  for (const pc of list) {
+    const b = document.createElement("button"), name = document.createElement("b"), info = document.createElement("span");
+    b.className = "pc" + (pc.usb ? " usb" : "");
+    name.textContent = pc.name; info.textContent = (pc.usb ? "USB cable" : "Wi-Fi") + " · " + pc.host;
+    b.append(name, info); b.onclick = () => choose(pc.host); box.append(b);
+  }
+};
+function choose(host) {
+  HOST = host.includes(":") ? host : host + ":8765";
+  try { localStorage.setItem("shuclaw-host", HOST); } catch {}
+  $("pick").classList.add("hidden");
+  clearTimeout(retryTimer); clearInterval(pingTimer); fails = 0;
+  if (ws) { const old = ws; ws = null; old.close(); }
+  connect();
+}
+$("rescan").onclick = scan;
+$("manual-go").onclick = () => { const v = $("manual").value.trim(); if (v) choose(v); };
+$("s-pc").onclick = () => showPick();
+
+async function goFullscreen() {
+  try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch {}
+  try { await screen.orientation.lock("landscape"); } catch {}
+  try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch {}
+}
+
+$("start").addEventListener("click", () => {
+  $("start").classList.add("hidden");
+  goFullscreen();
+});
+
+resetStick(sticks.L); resetStick(sticks.R);
+if (NATIVE) {
+  $("start").classList.add("hidden");    // the app is already full screen and landscape
+  if (HOST) connect(); else showPick();
+} else connect();
+</script>
+</body>
+</html>
