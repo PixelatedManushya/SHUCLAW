@@ -10,8 +10,8 @@ android {
         applicationId 'com.shuclaw.app'
         minSdk 26
         targetSdk 34
-        versionCode 5
-        versionName '1.4'
+        versionCode 6
+        versionName '1.5'
     }
 
     // The controller screen is the same page the PC serves to browsers, so there is one copy to maintain
