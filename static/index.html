@@ -42,6 +42,14 @@
   .sh.r { right: 0; border-right: 0; border-radius: 0 0 0 4vh; }
   .sh.trig { border-top: 0; }
   .sh.on { background: rgba(255,255,255,.22); color: #fff; }
+  /* L3 / R3: dedicated stick-click buttons tucked beside the bumpers, under the triggers */
+  .sh.stk {
+    top: calc(17vh * var(--scale) + 1.2vh); width: calc(13vh * var(--scale)); height: calc(13vh * var(--scale));
+    border-radius: 50%; font-size: 3.4vh;
+  }
+  .sh.stk.l { left: 20.5vw; border-left: 1px solid var(--edge); }
+  .sh.stk.r { right: 20.5vw; border-right: 1px solid var(--edge); }
+  .sh.stk.on { transform: scale(.93); }
 
   /* ---------- center: menu buttons ---------- */
   #mid {
@@ -195,6 +203,8 @@
   <div class="sh bump l" data-btn="LB">LB</div>
   <div class="sh trig r" data-btn="RT">RT</div>
   <div class="sh bump r" data-btn="RB">RB</div>
+  <div class="sh stk l" data-btn="LS" title="Left stick click">L3</div>
+  <div class="sh stk r" data-btn="RS" title="Right stick click">R3</div>
 
   <div id="mid">
     <div class="small" data-btn="BACK" title="Back / View">
@@ -241,7 +251,7 @@
   <div>
     <h1>SHUCLAW</h1>
     <p>Hold the phone sideways with both hands, thumbs resting on the screen.</p>
-    <p>Rest your thumbs on the sticks. Quick tap on a stick = L3 / R3 click.<br>Prefer sticks that appear under your thumb? Turn on Floating sticks in ⚙.</p>
+    <p>Rest your thumbs on the sticks. L3 / R3 are the round buttons next to LB / RB (a quick tap on a stick works too).<br>Prefer sticks that appear under your thumb? Turn on Floating sticks in ⚙.</p>
     <div class="go">Tap to start</div>
   </div>
 </div>

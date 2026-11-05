@@ -53,7 +53,8 @@ Phone and PC on the same Wi-Fi → run `start.bat` → scan the QR code or type 
 - Tap **Tap to start**: it goes full screen and locks to landscape.
 - **Sticks float**: put your left thumb anywhere in the lower-left area, or your right thumb in the
   lower-middle-right area, and the stick appears under it. Drag past the edge and it follows your thumb.
-- **Quick tap** on a stick area = L3 / R3 (stick click).
+- **L3 / R3** have their own round buttons next to LB / RB, so you can hold them (e.g. sprint)
+  while steering. A quick tap on a stick area also works (turn it off in ⚙ if it triggers by accident).
 - Slide your thumb between A/B/X/Y without lifting.
 - D-pad supports diagonals.
 - ⚙ (bottom centre): button size, stick size, dead zone, vibration, show stick areas.
