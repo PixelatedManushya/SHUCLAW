@@ -33,6 +33,8 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);   // remembers settings and the last PC
         s.setTextZoom(100);             // ignore system font scaling so the layout stays put
         s.setSupportZoom(false);
+        // lets the PC dashboard show this phone's real model name
+        s.setUserAgentString(s.getUserAgentString() + " SHUCLAW-App (" + Build.MANUFACTURER + " " + Build.MODEL + ")");
         web.addJavascriptInterface(new Bridge(), "ShuclawNative");
         web.loadUrl("file:///android_asset/index.html");
         setContentView(web);

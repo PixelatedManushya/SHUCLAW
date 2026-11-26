@@ -17,16 +17,34 @@ SHUCLAW is an independent project and is not affiliated with or endorsed by Micr
 2. Install the **ViGEmBus driver** (creates the virtual controller), from the official page only:
    https://github.com/nefarius/ViGEmBus/releases → download `ViGEmBus_..._x64_x86_arm64.exe` → install → restart the PC.
    (Installing the `vgamepad` package may also open this same installer automatically. Just accept it.)
-3. Double-click **`start.bat`**. The first run installs what it needs.
+3. Double-click **`SHUCLAW.pyw`**. No console window: the first run shows a small setup window
+   while it installs what it needs, then the **SHUCLAW Control Deck** opens.
    When Windows Firewall asks, tick **both Private and Public** and click Allow
    (USB tethering often shows up as a "Public" network).
+
+## The Control Deck (PC app)
+
+- Shows all 4 controller slots. Each connected phone shows up as a live controller drawing in its
+  player colour: buttons light up, sticks move, triggers fill, and it shakes when the game rumbles.
+- Phone name, app or browser, ping, and inputs per second for each player.
+- A QR code and the PC's addresses (click one to copy it and switch the QR code).
+- **Minimising or closing the window sends SHUCLAW to the system tray**, and the controllers stay connected.
+  The window is fully shut down while it's in the tray, so SHUCLAW uses about as little RAM/CPU as the
+  old console version and no GPU while you play. Click the tray icon (or open SHUCLAW again) to bring
+  the window back; right-click → **Quit SHUCLAW** to stop it.
+- If the ViGEmBus driver is missing, it opens in **preview mode** (inputs show, games don't see them)
+  with a button to get the driver.
+- Want a real `.exe`? Run **`build_exe.bat`** once. It creates `dist\SHUCLAW.exe`, a single file you
+  can pin to the taskbar or copy anywhere (the ViGEmBus driver is still needed).
+- `start.bat` still works: it's the old console version, handy for troubleshooting.
+  Log file for the app: `%LOCALAPPDATA%\SHUCLAW\shuclaw.log`.
 
 ## Install the Android app (recommended)
 
 1. Copy **`SHUCLAW.apk`** to your phone (USB file transfer, Google Drive, or WhatsApp to yourself).
 2. Tap it on the phone. Android will ask to allow installing from that app ("Install unknown apps"): allow it once, then tap Install.
    Play Protect may say it doesn't recognise the developer. Tap "Install anyway" (it's your own app).
-3. Open SHUCLAW. It finds your PC automatically (start.bat must be running). USB connections show in green.
+3. Open SHUCLAW. It finds your PC automatically (SHUCLAW must be running on the PC). USB connections show in green.
    It remembers the PC next time; ⚙ → **Change PC** to switch.
 
 The app gives crisp native vibration (⚙ → Button vibration: Off / Light / Medium / Strong) and **game rumble**:
@@ -41,12 +59,12 @@ shared by the app and the browser version.
 
 1. Plug the phone into the PC.
 2. On the phone: **Settings → Network & internet → Hotspot & tethering → USB tethering → ON**.
-3. Close and re-run `start.bat`. A new address appears (often `192.168.x.x`).
+3. The Control Deck picks up the new address by itself within a few seconds (often `192.168.x.x`).
 4. Open **Chrome** on the phone and type that address, e.g. `http://192.168.42.10:8765`.
 
 ## Connect over Wi-Fi
 
-Phone and PC on the same Wi-Fi → run `start.bat` → scan the QR code or type the address shown.
+Phone and PC on the same Wi-Fi → open SHUCLAW on the PC → scan the QR code in the Control Deck or type the address shown.
 
 ## Using it
 
@@ -70,9 +88,11 @@ To check the controller in Windows: press Win+R → `joy.cpl`.
 - **Page won't load**: the firewall blocked it. Windows Security → Firewall → Allow an app → allow
   `python.exe` on Public and Private. Make sure the phone uses `http://`, not `https://`.
 - **Game ignores it**: the game must support controllers. In Steam: Settings → Controller, check controller support is enabled.
+- **Buttons stuck**: lifting all fingers or leaving the page releases everything; disconnecting does too.
+- **SHUCLAW.pyw does nothing**: run `start.bat` to see errors, or check `%LOCALAPPDATA%\SHUCLAW\shuclaw.log`
+  and `setup.log` in the same folder.
 
 ## License
 
 MIT, see [LICENSE](LICENSE). Uses [vgamepad](https://github.com/yannbouteiller/vgamepad) and the
 [ViGEmBus](https://github.com/nefarius/ViGEmBus) driver (installed separately, not included).
-- **Buttons stuck**: lifting all fingers or leaving the page releases everything; disconnecting does too.

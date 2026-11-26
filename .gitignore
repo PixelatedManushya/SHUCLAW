@@ -23,3 +23,9 @@ keystore.properties
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Windows app build (build_exe.bat)
+dist/
+build/
+*.spec
+shuclaw.ico

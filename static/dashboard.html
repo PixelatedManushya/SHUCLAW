@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHUCLAW Control Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@600;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #04050b;
+    --glass: rgba(255,255,255,.055);
+    --glass-2: rgba(255,255,255,.09);
+    --line: rgba(255,255,255,.12);
+    --line-2: rgba(255,255,255,.22);
+    --text: #eef1ff;
+    --muted: #8b91ad;
+    --dim: #565c78;
+    --p1: #39ff9c; --p2: #3ab8ff; --p3: #ff4d9d; --p4: #ffcf3a;
+    --hot: #b26bff;
+    --display: "Unbounded", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    --ui: "Space Grotesk", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+    --mx: 50vw; --my: 30vh;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--ui);
+    overflow: hidden; user-select: none; -webkit-user-select: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* ================= background: aurora, synth floor, grain, spotlight ================= */
+  .bg { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; mix-blend-mode: screen; }
+  .blob.b1 { width: 46vw; height: 46vw; left: -10vw; top: -14vw; background: #5b2bff; animation: drift1 22s ease-in-out infinite; }
+  .blob.b2 { width: 40vw; height: 40vw; right: -12vw; top: 4vh; background: #00c2ff; animation: drift2 26s ease-in-out infinite; }
+  .blob.b3 { width: 36vw; height: 36vw; left: 30vw; bottom: -18vw; background: #ff2d8a; animation: drift3 30s ease-in-out infinite; opacity: .38; }
+  .blob.b4 { width: 24vw; height: 24vw; left: 52vw; top: 30vh; background: #19ffa0; animation: drift1 34s ease-in-out infinite reverse; opacity: .18; }
+  @keyframes drift1 { 50% { transform: translate(12vw, 10vh) scale(1.15); } }
+  @keyframes drift2 { 50% { transform: translate(-14vw, 16vh) scale(.85); } }
+  @keyframes drift3 { 50% { transform: translate(-10vw, -12vh) scale(1.2); } }
+
+  .floor {
+    position: absolute; left: -50%; right: -50%; bottom: -10vh; height: 55vh;
+    background-image:
+      linear-gradient(rgba(140,120,255,.28) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(140,120,255,.28) 1px, transparent 1px);
+    background-size: 64px 64px;
+    transform: perspective(420px) rotateX(62deg); transform-origin: 50% 0;
+    mask-image: linear-gradient(to top, rgba(0,0,0,.9), transparent 85%);
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,.9), transparent 85%);
+    animation: floor 3.2s linear infinite; opacity: .45;
+  }
+  @keyframes floor { to { background-position: 0 64px, 0 0; } }
+
+  .spot {
+    position: absolute; inset: 0;
+    background: radial-gradient(520px circle at var(--mx) var(--my), rgba(170,140,255,.13), transparent 60%);
+  }
+  .grain {
+    position: absolute; inset: -50%; opacity: .07;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain 1s steps(6) infinite;
+  }
+  @keyframes grain { 0%{transform:translate(0,0)} 20%{transform:translate(-4%,3%)} 40%{transform:translate(3%,-5%)} 60%{transform:translate(-6%,2%)} 80%{transform:translate(5%,4%)} }
+  #fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 40; pointer-events: none; }
+
+  /* ================= glass ================= */
+  .glass {
+    position: relative; background: var(--glass);
+    backdrop-filter: blur(26px) saturate(170%); -webkit-backdrop-filter: blur(26px) saturate(170%);
+    border: 1px solid var(--line); border-radius: 22px;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .glass::before {   /* top-left sheen */
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(135deg, rgba(255,255,255,.10), transparent 38%);
+  }
+
+  /* ================= layout ================= */
+  .app { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
+
+  .titlebar {
+    height: 52px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 10px 0 20px;
+    border-bottom: 1px solid rgba(255,255,255,.06); background: rgba(5,6,14,.35);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .mark {
+    width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+    background: conic-gradient(from var(--spin, 0deg), var(--p1), var(--p2), var(--p3), var(--p4), var(--p1));
+    animation: spin 6s linear infinite; box-shadow: 0 0 22px rgba(160,120,255,.6);
+  }
+  .mark svg { width: 20px; height: 20px; background: #070812; border-radius: 6px; padding: 3px; }
+  @property --spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  @keyframes spin { to { --spin: 360deg; } }
+  .logo {
+    position: relative; font-family: var(--display); font-weight: 900; font-size: 19px; letter-spacing: .14em;
+    background: linear-gradient(90deg, #fff, #c9b8ff 40%, #7fe3ff 70%, #fff);
+    background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 5s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .logo.glitch { animation: shimmer 5s linear infinite, glitch .35s steps(2) 1; }
+  @keyframes glitch {
+    0% { transform: translate(0); filter: none; }
+    25% { transform: translate(-3px, 1px) skewX(-12deg); filter: drop-shadow(3px 0 #ff2d8a) drop-shadow(-3px 0 #00c2ff); }
+    50% { transform: translate(3px, -1px) skewX(10deg); filter: drop-shadow(-3px 0 #ff2d8a) drop-shadow(3px 0 #19ffa0); }
+    100% { transform: translate(0); filter: none; }
+  }
+  .tag {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .22em; color: var(--muted);
+    padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.03);
+  }
+  .drag { flex: 1; align-self: stretch; }
+  .live {
+    display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .18em;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(57,255,156,.35); color: var(--p1);
+    background: rgba(57,255,156,.07);
+  }
+  .live i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; animation: blink 1.4s ease-in-out infinite; }
+  .live.demo { color: var(--p4); border-color: rgba(255,207,58,.35); background: rgba(255,207,58,.07); }
+  .live.off { color: #ff5a7a; border-color: rgba(255,90,122,.35); background: rgba(255,90,122,.07); }
+  @keyframes blink { 50% { opacity: .25; } }
+  .winbtns { display: flex; gap: 4px; margin-left: 8px; }
+  .winbtns button {
+    width: 40px; height: 32px; border: 0; border-radius: 9px; background: transparent; color: var(--muted);
+    display: grid; place-items: center; transition: background .15s, color .15s;
+  }
+  .winbtns button:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .winbtns button.x:hover { background: #ff3b6b; }
+  .winbtns svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 1.6; fill: none; }
+  body:not(.native) .winbtns { display: none; }
+
+  .main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 330px; gap: 18px; padding: 18px 20px 20px; }
+  .left { min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+  .right { min-height: 0; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; scrollbar-width: none; }
+  .right::-webkit-scrollbar { display: none; }
+
+  /* ================= hero ================= */
+  .hero { display: flex; align-items: center; gap: 22px; padding: 16px 22px; flex: none; }
+  .gauge { position: relative; width: 96px; height: 96px; flex: none; }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+  .gauge .track { fill: none; stroke: rgba(255,255,255,.08); stroke-width: 8; }
+  .gauge .seg { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2,1.4,.4,1), opacity .4s; filter: drop-shadow(0 0 6px currentColor); }
+  .gauge .num {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-family: var(--display); font-weight: 900; font-size: 38px;
+  }
+  .gauge .num span { display: inline-block; }
+  .gauge .num span.pop { animation: pop .6s cubic-bezier(.2,1.8,.4,1); }
+  @keyframes pop { 0% { transform: scale(.3) rotate(-20deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+  .headline h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 26px; letter-spacing: -.01em; line-height: 1.1; }
+  .headline h1 em { font-style: normal; background: linear-gradient(90deg, var(--p1), var(--p2), var(--p3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .headline p { margin: 6px 0 0; color: var(--muted); font-size: 13.5px; }
+  .minis { margin-left: auto; display: flex; gap: 10px; }
+  .mini {
+    width: 62px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+    border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--dim);
+    transition: all .5s cubic-bezier(.2,1.5,.4,1);
+  }
+  .mini svg { width: 38px; }
+  .mini.on { color: var(--c); border-color: color-mix(in srgb, var(--c) 55%, transparent); background: color-mix(in srgb, var(--c) 14%, transparent); box-shadow: 0 0 26px -4px var(--c); transform: translateY(-3px); }
+  .stats { display: flex; gap: 22px; margin-left: 10px; }
+  .stat b { display: block; font-family: var(--mono); font-size: 18px; font-weight: 700; }
+  .stat small { color: var(--muted); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; }
+
+  /* ================= driver banner ================= */
+  .banner {
+    flex: none; display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 16px;
+    border: 1px solid rgba(255,207,58,.35); background: linear-gradient(90deg, rgba(255,207,58,.13), rgba(255,140,58,.06));
+    color: #ffe7a3; font-size: 13.5px;
+  }
+  .banner b { color: #fff; }
+  .banner button { margin-left: auto; flex: none; border: 0; border-radius: 10px; padding: 8px 14px; background: var(--p4); color: #1d1500; font-weight: 700; }
+  .hidden { display: none !important; }
+
+  /* ================= player cards ================= */
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 16px; }
+  .card {
+    --c: var(--p1); --rumble: 0;
+    min-height: 0; display: flex; flex-direction: column; padding: 14px 16px 12px; overflow: hidden;
+    transform-style: preserve-3d; transition: transform .25s ease, border-color .4s, box-shadow .4s;
+  }
+  .card[data-slot="2"] { --c: var(--p2); } .card[data-slot="3"] { --c: var(--p3); } .card[data-slot="4"] { --c: var(--p4); }
+  .card.on { border-color: color-mix(in srgb, var(--c) 45%, transparent); box-shadow: 0 24px 70px -26px color-mix(in srgb, var(--c) 70%, transparent), inset 0 1px 0 rgba(255,255,255,.14); }
+  .card.on::after {   /* rotating neon edge */
+    content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+    background: conic-gradient(from var(--spin), transparent 0 70%, var(--c) 85%, transparent 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    animation: spin 4s linear infinite;
+  }
+  .card .aura {
+    position: absolute; left: 50%; top: 56%; width: 70%; aspect-ratio: 1; transform: translate(-50%, -50%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--c) 40%, transparent), transparent 65%);
+    filter: blur(20px); opacity: 0; transition: opacity .6s; pointer-events: none;
+  }
+  .card.on .aura { opacity: .55; animation: breathe 3.5s ease-in-out infinite; }
+  @keyframes breathe { 50% { opacity: .3; transform: translate(-50%, -50%) scale(1.12); } }
+
+  .chead { position: relative; display: flex; align-items: center; gap: 10px; z-index: 1; }
+  .pbadge {
+    font-family: var(--display); font-weight: 900; font-size: 13px; letter-spacing: .06em;
+    padding: 5px 10px; border-radius: 9px; color: #05060c; background: var(--c);
+    box-shadow: 0 0 18px -2px var(--c);
+  }
+  .card:not(.on) .pbadge { background: transparent; color: var(--dim); border: 1px dashed var(--line-2); box-shadow: none; }
+  .dev { min-width: 0; }
+  .dev b { display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dev small { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+  .card:not(.on) .dev b { color: var(--dim); font-weight: 500; }
+  .kind { font-family: var(--mono); font-size: 9.5px; letter-spacing: .18em; padding: 3px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--muted); }
+  .ping { margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; }
+  .ping svg { width: 64px; height: 22px; }
+  .ping polyline { fill: none; stroke: var(--c); stroke-width: 1.6; stroke-linejoin: round; filter: drop-shadow(0 0 3px var(--c)); }
+  .ping .ms { min-width: 52px; text-align: right; }
+  .ping .ms.good { color: var(--p1); } .ping .ms.ok { color: var(--p4); } .ping .ms.bad { color: #ff5a7a; }
+  .card:not(.on) .ping, .card:not(.on) .kind { visibility: hidden; }
+
+  .stage { position: relative; flex: 1; min-height: 0; z-index: 1; margin: 6px 0 4px; }
+  .stage svg.pad { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .card.on .stage svg.pad { animation: hover 4s ease-in-out infinite; }
+  @keyframes hover { 50% { transform: translateY(-4px); } }
+  .card.rumbling .stage svg.pad { animation: shake .09s linear infinite; }
+  @keyframes shake {
+    0% { transform: translate(calc(var(--rumble) * -3px), calc(var(--rumble) * 1px)) rotate(calc(var(--rumble) * -.6deg)); }
+    50% { transform: translate(calc(var(--rumble) * 3px), calc(var(--rumble) * -1px)) rotate(calc(var(--rumble) * .6deg)); }
+    100% { transform: translate(calc(var(--rumble) * -2px), 0); }
+  }
+  .waves { position: absolute; inset: 0; pointer-events: none; }
+  .waves i {
+    position: absolute; left: 50%; top: 50%; width: 40%; aspect-ratio: 1; border-radius: 50%;
+    border: 2px solid var(--c); transform: translate(-50%, -50%) scale(.6); opacity: 0;
+  }
+  .card.rumbling .waves i { animation: wave 1s ease-out infinite; }
+  .card.rumbling .waves i:nth-child(2) { animation-delay: .33s; }
+  .card.rumbling .waves i:nth-child(3) { animation-delay: .66s; }
+  @keyframes wave { 0% { transform: translate(-50%,-50%) scale(.6); opacity: calc(var(--rumble) * .9); } 100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; } }
+
+  /* the controller drawing */
+  .pad .body { fill: url(#bodygrad); stroke: var(--line-2); stroke-width: 1.5; }
+  .card.on .pad .body { stroke: color-mix(in srgb, var(--c) 70%, white); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--c) 45%, transparent)); }
+  .pad .part { fill: rgba(255,255,255,.06); stroke: rgba(255,255,255,.28); stroke-width: 1.2; transition: fill .07s, stroke .07s; }
+  .pad .lbl { font-family: var(--display); font-weight: 900; font-size: 11px; fill: rgba(255,255,255,.55); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .pad .part.on { fill: var(--c); stroke: #fff; filter: drop-shadow(0 0 8px var(--c)); }
+  .pad .face.on + .lbl { fill: #05060c; }
+  .pad .tfill { fill: var(--c); transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); filter: drop-shadow(0 0 6px var(--c)); }
+  .pad .knob { fill: #1a1d2e; stroke: rgba(255,255,255,.35); stroke-width: 1.4; transition: transform .045s linear; }
+  .pad .knob.on { fill: var(--c); stroke: #fff; }
+  .pad .vec { stroke: var(--c); stroke-width: 2; stroke-linecap: round; opacity: .8; }
+  .pad .ghostline { display: none; }
+  .card:not(.on) .pad .body { fill: transparent; stroke: rgba(255,255,255,.16); stroke-dasharray: 6 6; animation: dash 18s linear infinite; }
+  .card:not(.on) .pad .part, .card:not(.on) .pad .knob { fill: transparent; stroke: rgba(255,255,255,.1); }
+  .card:not(.on) .pad .lbl { fill: rgba(255,255,255,.12); }
+  .card:not(.on) .stage svg.pad { opacity: .75; animation: float 5s ease-in-out infinite; }
+  @keyframes dash { to { stroke-dashoffset: -240; } }
+  @keyframes float { 50% { transform: translateY(-8px) rotate(-1deg); } }
+  .waiting {
+    position: absolute; left: 0; right: 0; bottom: 6%; text-align: center; font-family: var(--mono);
+    font-size: 11px; letter-spacing: .28em; color: var(--dim); text-transform: uppercase;
+  }
+  .waiting::after { content: ""; animation: dots 1.6s steps(4) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  .card.on .waiting { display: none; }
+  .scan { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; }
+  .scan::before {
+    content: ""; position: absolute; left: 0; right: 0; height: 40%; top: -40%;
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,.05), transparent);
+    animation: scan 4.5s linear infinite;
+  }
+  .card.on .scan { display: none; }
+  @keyframes scan { to { top: 100%; } }
+
+  .cfoot { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .bars { display: flex; gap: 6px; align-items: center; }
+  .bar { width: 46px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--c); box-shadow: 0 0 8px var(--c); transition: width .05s linear; }
+  .cfoot .sp { margin-left: auto; }
+  .card:not(.on) .cfoot { visibility: hidden; }
+
+  .card.joining { animation: materialize .9s cubic-bezier(.2,1.2,.3,1); }
+  @keyframes materialize {
+    0% { transform: scale(.92) rotateX(16deg); filter: blur(10px) brightness(2.4); }
+    60% { filter: blur(0) brightness(1.4); }
+    100% { transform: none; filter: none; }
+  }
+  .card.leaving { animation: glitchout .55s steps(6) 1; }
+  @keyframes glitchout {
+    0% { transform: translate(0); filter: none; }
+    20% { transform: translate(-6px, 2px) skewX(8deg); filter: hue-rotate(90deg) saturate(3); }
+    40% { transform: translate(5px, -3px); clip-path: inset(10% 0 40% 0); }
+    60% { transform: translate(-3px, 1px) skewX(-6deg); clip-path: inset(50% 0 10% 0); filter: hue-rotate(-90deg); }
+    80% { transform: translate(2px, 0); clip-path: none; }
+    100% { transform: none; filter: none; }
+  }
+
+  /* ================= right column ================= */
+  .panel { padding: 18px; }
+  .panel h2 { margin: 0 0 4px; font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: .02em; }
+  .panel .sub { margin: 0 0 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .qrwrap { position: relative; width: 190px; margin: 0 auto 14px; padding: 12px; border-radius: 20px; background: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.4), 0 0 50px -6px rgba(140,120,255,.65); }
+  .qrwrap svg { display: block; width: 100%; height: auto; shape-rendering: crispEdges; }
+  .qrwrap::after {   /* scanning laser */
+    content: ""; position: absolute; left: 6px; right: 6px; height: 2px; top: 10%; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, #b26bff, #3ab8ff, transparent); box-shadow: 0 0 12px #8a6bff;
+    animation: laser 2.6s ease-in-out infinite alternate;
+  }
+  @keyframes laser { to { top: 88%; } }
+  .noqr { text-align: center; color: #333; font-size: 12px; padding: 50px 0; }
+  .addrs { display: flex; flex-direction: column; gap: 6px; }
+  .addr {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line);
+    background: rgba(255,255,255,.03); font-family: var(--mono); font-size: 12.5px; text-align: left; transition: all .2s;
+  }
+  .addr:hover { background: rgba(255,255,255,.08); border-color: var(--line-2); }
+  .addr.sel { border-color: rgba(178,107,255,.6); background: rgba(178,107,255,.12); }
+  .addr .cp { margin-left: auto; color: var(--muted); font-family: var(--ui); font-size: 11px; }
+  .steps { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+  .steps li { display: flex; gap: 10px; font-size: 12.5px; color: #c6cbe3; line-height: 1.45; }
+  .steps li b { flex: none; width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; font-family: var(--mono); font-size: 10.5px; background: rgba(255,255,255,.08); color: #fff; }
+
+  .sysrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .sysrow:last-child { border-bottom: 0; }
+  .sysrow span { color: var(--muted); }
+  .sysrow b { margin-left: auto; font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--p1); box-shadow: 0 0 10px var(--p1); }
+  .dot.warn { background: var(--p4); box-shadow: 0 0 10px var(--p4); }
+  .dot.bad { background: #ff5a7a; box-shadow: 0 0 10px #ff5a7a; }
+
+  .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 12.5px; }
+  .log li { display: flex; gap: 10px; align-items: center; animation: slidein .4s ease; }
+  .log li time { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+  .log li i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .log .empty { color: var(--dim); }
+  @keyframes slidein { from { transform: translateX(14px); opacity: 0; } }
+
+  /* ================= toast ================= */
+  .toasts { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 60; display: grid; gap: 8px; pointer-events: none; }
+  .toast {
+    display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 12px; border-radius: 16px;
+    background: rgba(16,18,32,.72); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid color-mix(in srgb, var(--c) 50%, transparent); box-shadow: 0 10px 40px -10px var(--c);
+    animation: toastin .55s cubic-bezier(.2,1.6,.4,1), toastout .4s ease 2.8s forwards; font-size: 14px;
+  }
+  .toast .pbadge { font-size: 11px; }
+  @keyframes toastin { from { transform: translateY(-30px) scale(.8); opacity: 0; } }
+  @keyframes toastout { to { transform: translateY(-20px); opacity: 0; } }
+
+  @media (max-width: 1050px) {
+    body { overflow: auto; }
+    .main { grid-template-columns: 1fr; }
+    .grid { grid-template-rows: none; grid-auto-rows: 270px; }
+    .minis, .stats { display: none; }
+  }
+  @media (max-width: 640px) {
+    .main { padding: 12px 16px; }
+    .grid { grid-template-columns: 1fr; }
+    .tag { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bg">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div>
+  <div class="floor"></div>
+  <div class="spot"></div>
+  <div class="grain"></div>
+</div>
+<canvas id="fx"></canvas>
+
+<!-- shared gradient for the controller bodies -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="bodygrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="rgba(255,255,255,.17)"/>
+      <stop offset=".55" stop-color="rgba(255,255,255,.05)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,.02)"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="app">
+  <header class="titlebar pywebview-drag-region">
+    <div class="brand">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 8h10a5 5 0 0 1 4.8 6.4l-1 3.4a2.4 2.4 0 0 1-4.1.9L14.6 16H9.4l-2.1 2.7a2.4 2.4 0 0 1-4.1-.9l-1-3.4A5 5 0 0 1 7 8zm0 3v1.2H5.8v1.6H7V15h1.6v-1.2h1.2v-1.6H8.6V11zm9.6.2a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8zm-1.8 1.8a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8z"/></svg></div>
+      <div class="logo" id="logo">SHUCLAW</div>
+      <div class="tag">CONTROL&nbsp;DECK</div>
+    </div>
+    <div class="drag pywebview-drag-region"></div>
+    <div class="live off" id="live"><i></i><span>OFFLINE</span></div>
+    <div class="winbtns">
+      <button title="Minimise to tray (controllers keep running)" onclick="api('minimize')"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+      <button class="x" title="Close to tray (controllers keep running)" onclick="api('hide')"><svg viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="left">
+      <div class="hero glass">
+        <div class="gauge">
+          <svg viewBox="0 0 100 100" id="gauge"><circle class="track" cx="50" cy="50" r="42"/></svg>
+          <div class="num"><span id="count">0</span></div>
+        </div>
+        <div class="headline">
+          <h1 id="headline">Waiting for players</h1>
+          <p id="subline">Open the SHUCLAW app on your phone. It finds this PC by itself.</p>
+        </div>
+        <div class="minis" id="minis"></div>
+        <div class="stats">
+          <div class="stat"><b id="st-up">0:00</b><small>uptime</small></div>
+          <div class="stat"><b id="st-rate">0</b><small>inputs/s</small></div>
+        </div>
+      </div>
+
+      <div class="banner hidden" id="banner">
+        <span>⚠</span>
+        <span><b>Preview mode.</b> <span id="banner-text">The ViGEmBus driver isn't installed, so games can't see the phones yet. Everything else works.</span></span>
+        <button onclick="openUrl('https://github.com/nefarius/ViGEmBus/releases')">Get the driver</button>
+      </div>
+
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <aside class="right">
+      <div class="panel glass">
+        <h2>Connect a phone</h2>
+        <p class="sub">SHUCLAW app: just open it. Browser: scan this with the phone's camera.</p>
+        <div class="qrwrap" id="qr"><div class="noqr">No network yet</div></div>
+        <div class="addrs" id="addrs"></div>
+        <ul class="steps">
+          <li><b>1</b><span>Same Wi-Fi as this PC, <i>or</i> plug in the cable and turn on <b style="all:unset;color:#fff">USB tethering</b> (lowest lag).</span></li>
+          <li><b>2</b><span>Open SHUCLAW on the phone, or scan the code.</span></li>
+          <li><b>3</b><span>Your controller lights up here. Up to 4 players.</span></li>
+        </ul>
+      </div>
+
+      <div class="panel glass">
+        <h2>System</h2>
+        <div class="sysrow"><i class="dot" id="drv-dot"></i><span>Controller driver</span><b id="drv">…</b></div>
+        <div class="sysrow"><i class="dot" id="srv-dot"></i><span>Server</span><b id="srv">…</b></div>
+        <div class="sysrow"><i class="dot"></i><span>PC name</span><b id="host">…</b></div>
+      </div>
+
+      <div class="panel glass">
+        <h2>Activity</h2>
+        <ul class="log" id="log"><li class="empty">Nothing yet</li></ul>
+      </div>
+    </aside>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const COLORS = ["#39ff9c", "#3ab8ff", "#ff4d9d", "#ffcf3a"];
+const MAX = 4;
+
+// ---------- window controls (only inside the desktop app) ----------
+const native = () => window.pywebview && window.pywebview.api;
+window.addEventListener("pywebviewready", () => document.body.classList.add("native"));
+function api(name, ...args) { if (native()) native()[name](...args); }
+function openUrl(url) { if (native()) native().open_url(url); else window.open(url, "_blank"); }
+
+// ---------- controller drawing ----------
+// Bit order matches server.py: A B X Y LB RB BACK START GUIDE LS RS UP DOWN LEFT RIGHT
+function padSVG() {
+  return `
+<svg class="pad" viewBox="0 0 400 270" preserveAspectRatio="xMidYMid meet">
+  <g data-trig="lt"><rect class="part" x="84" y="10" width="56" height="32" rx="11"/><rect class="tfill" x="84" y="10" width="56" height="32" rx="11"/><text class="lbl" x="112" y="26">LT</text></g>
+  <g data-trig="rt"><rect class="part" x="260" y="10" width="56" height="32" rx="11"/><rect class="tfill" x="260" y="10" width="56" height="32" rx="11"/><text class="lbl" x="288" y="26">RT</text></g>
+  <path class="part" data-b="4" d="M66 70 C84 54 112 46 148 45 L152 60 C120 61 98 67 80 78 Z"/>
+  <path class="part" data-b="5" d="M334 70 C316 54 288 46 252 45 L248 60 C280 61 302 67 320 78 Z"/>
+  <path class="body" d="M110 60 C150 50 250 50 290 60 C330 64 352 80 366 110 C384 150 398 206 392 232 C386 258 356 264 338 246 C318 226 300 200 276 194 L124 194 C100 200 82 226 62 246 C44 264 14 258 8 232 C2 206 16 150 34 110 C48 80 70 64 110 60 Z"/>
+  <circle class="part" cx="112" cy="116" r="29"/>
+  <line class="vec" data-vec="L" x1="112" y1="116" x2="112" y2="116"/>
+  <circle class="knob" data-knob="L" data-b="9" cx="112" cy="116" r="18"/>
+  <circle class="part" cx="250" cy="158" r="27"/>
+  <line class="vec" data-vec="R" x1="250" y1="158" x2="250" y2="158"/>
+  <circle class="knob" data-knob="R" data-b="10" cx="250" cy="158" r="17"/>
+  <rect class="part" x="140" y="146" width="20" height="20"/>
+  <rect class="part" data-b="11" x="140" y="124" width="20" height="22" rx="4"/>
+  <rect class="part" data-b="12" x="140" y="166" width="20" height="22" rx="4"/>
+  <rect class="part" data-b="13" x="118" y="146" width="22" height="20" rx="4"/>
+  <rect class="part" data-b="14" x="160" y="146" width="22" height="20" rx="4"/>
+  <rect class="part" data-b="6" x="163" y="107" width="18" height="11" rx="5.5"/>
+  <rect class="part" data-b="7" x="219" y="107" width="18" height="11" rx="5.5"/>
+  <circle class="part" data-b="8" cx="200" cy="84" r="13"/>
+  <circle class="part face" data-b="3" cx="290" cy="88" r="12.5"/><text class="lbl" x="290" y="88">Y</text>
+  <circle class="part face" data-b="2" cx="266" cy="112" r="12.5"/><text class="lbl" x="266" y="112">X</text>
+  <circle class="part face" data-b="1" cx="314" cy="112" r="12.5"/><text class="lbl" x="314" y="112">B</text>
+  <circle class="part face" data-b="0" cx="290" cy="136" r="12.5"/><text class="lbl" x="290" y="136">A</text>
+</svg>`;
+}
+const MINI = `<svg viewBox="0 0 40 26" fill="currentColor"><path d="M11 3h18a10 10 0 0 1 9.6 12.8l-1.6 5.3a3.6 3.6 0 0 1-6.2 1.4L27 18H13l-3.8 4.5a3.6 3.6 0 0 1-6.2-1.4L1.4 15.8A10 10 0 0 1 11 3zm-.5 5v2.5H8v3h2.5V16h3v-2.5H16v-3h-2.5V8zm17.5 1a1.6 1.6 0 1 0 0 3.2A1.6 1.6 0 0 0 28 9zm3.4 3.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2z"/></svg>`;
+
+// ---------- build the four slots ----------
+const cards = {};
+for (let slot = 1; slot <= MAX; slot++) {
+  const el = document.createElement("div");
+  el.className = "card glass"; el.dataset.slot = slot;
+  el.innerHTML = `
+    <div class="aura"></div><div class="scan"></div>
+    <div class="chead">
+      <span class="pbadge">P${slot}</span>
+      <div class="dev"><b>Empty slot</b><small>—</small></div>
+      <span class="kind">APP</span>
+      <div class="ping"><svg viewBox="0 0 64 22" preserveAspectRatio="none"><polyline points=""/></svg><span class="ms">— ms</span></div>
+    </div>
+    <div class="stage">${padSVG()}<div class="waves"><i></i><i></i><i></i></div><div class="waiting">waiting for player ${slot}</div></div>
+    <div class="cfoot">
+      <span class="bars">LT <span class="bar"><i data-bar="lt"></i></span></span>
+      <span class="bars">RT <span class="bar"><i data-bar="rt"></i></span></span>
+      <span class="sp up">0s</span><span class="rate">0/s</span>
+    </div>`;
+  $("grid").append(el);
+  const q = s => el.querySelector(s);
+  cards[slot] = {
+    el, name: q(".dev b"), meta: q(".dev small"), kind: q(".kind"), ms: q(".ms"), spark: q(".ping polyline"),
+    up: q(".up"), rate: q(".rate"),
+    bits: [...el.querySelectorAll("[data-b]")].map(e => [e, 1 << +e.dataset.b]),
+    knobs: { L: q('[data-knob="L"]'), R: q('[data-knob="R"]') },
+    vecs: { L: q('[data-vec="L"]'), R: q('[data-vec="R"]') },
+    trig: { lt: q('[data-trig="lt"] .tfill'), rt: q('[data-trig="rt"] .tfill') },
+    bars: { lt: q('[data-bar="lt"]'), rt: q('[data-bar="rt"]') },
+    pings: [], on: false, lastMask: -1,
+  };
+  // 3D tilt toward the mouse
+  el.addEventListener("mousemove", e => {
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    el.style.transform = `perspective(900px) rotateY(${x * 7}deg) rotateX(${-y * 7}deg)`;
+  });
+  el.addEventListener("mouseleave", () => el.style.transform = "");
+
+  const m = document.createElement("div");
+  m.className = "mini"; m.style.setProperty("--c", COLORS[slot - 1]); m.innerHTML = MINI; m.title = `Player ${slot}`;
+  $("minis").append(m);
+}
+// gauge: one arc per slot
+(() => {
+  const g = $("gauge"), C = 2 * Math.PI * 42, seg = C / MAX, gap = 7;
+  for (let i = 0; i < MAX; i++) {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("class", "seg"); c.setAttribute("cx", 50); c.setAttribute("cy", 50); c.setAttribute("r", 42);
+    c.style.color = COLORS[i]; c.style.stroke = COLORS[i];
+    c.style.strokeDasharray = `${seg - gap} ${C}`;
+    c.style.transform = `rotate(${i * 360 / MAX}deg)`; c.style.transformOrigin = "50px 50px";
+    c.style.strokeDashoffset = seg - gap; c.dataset.full = 0;
+    g.append(c);
+  }
+})();
+
+// ---------- rendering ----------
+const fmtTime = s => s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s` : `${Math.floor(s / 3600)}h ${Math.floor(s % 3600 / 60)}m`;
+const fmtUp = s => `${Math.floor(s / 3600) ? Math.floor(s / 3600) + ":" : ""}${String(Math.floor(s % 3600 / 60)).padStart(Math.floor(s / 3600) ? 2 : 1, "0")}:${String(s % 60).padStart(2, "0")}`;
+let lastCount = -1;
+
+function render(state) {
+  const live = new Map(state.players.map(p => [p.slot, p]));
+  let rate = 0;
+  for (let slot = 1; slot <= MAX; slot++) {
+    const c = cards[slot], p = live.get(slot);
+    if (!!p !== c.on) setOn(c, !!p);
+    if (!p) continue;
+    rate += p.rate;
+    c.name.textContent = p.device;
+    c.meta.textContent = p.peer;
+    c.kind.textContent = p.app ? "APP" : "BROWSER";
+    c.up.textContent = fmtTime(p.since);
+    c.rate.textContent = `${p.rate}/s`;
+    if (p.ping != null) {
+      c.ms.textContent = `${p.ping} ms`;
+      c.ms.className = "ms " + (p.ping < 30 ? "good" : p.ping < 80 ? "ok" : "bad");
+    }
+    drawInputs(c, p.s);
+    const rum = Math.max(p.rumble[0], p.rumble[1]) / 255;
+    c.el.style.setProperty("--rumble", Math.max(rum, .35).toFixed(2));
+    c.el.classList.toggle("rumbling", rum > 0.02);
+  }
+  const n = live.size;
+  if (n !== lastCount) setCount(n, lastCount);
+  $("st-up").textContent = fmtUp(state.uptime);
+  $("st-rate").textContent = rate;
+}
+
+function drawInputs(c, s) {
+  const [mask, lx, ly, rx, ry, lt, rt] = s;
+  if (mask !== c.lastMask) {
+    for (const [e, bit] of c.bits) e.classList.toggle("on", !!(mask & bit));
+    c.lastMask = mask;
+  }
+  const move = (k, x, y, cx, cy) => {
+    const dx = x * 13, dy = -y * 13;
+    c.knobs[k].style.transform = `translate(${dx}px, ${dy}px)`;
+    c.vecs[k].setAttribute("x2", cx + dx); c.vecs[k].setAttribute("y2", cy + dy);
+  };
+  move("L", lx, ly, 112, 116); move("R", rx, ry, 250, 158);
+  c.trig.lt.style.transform = `scaleY(${lt})`; c.trig.rt.style.transform = `scaleY(${rt})`;
+  c.bars.lt.style.width = lt * 100 + "%"; c.bars.rt.style.width = rt * 100 + "%";
+}
+
+function setOn(c, on) {
+  c.on = on;
+  c.el.classList.toggle("on", on);
+  c.el.classList.remove("joining", "leaving"); void c.el.offsetWidth;
+  c.el.classList.add(on ? "joining" : "leaving");
+  if (!on) {
+    c.name.textContent = "Empty slot"; c.meta.textContent = "—"; c.pings = []; c.spark.setAttribute("points", "");
+    c.ms.textContent = "— ms"; c.ms.className = "ms"; c.lastMask = -1;
+    drawInputs(c, [0, 0, 0, 0, 0, 0, 0]); c.el.classList.remove("rumbling");
+  } else {
+    setTimeout(() => {   // after the layout settles (fonts, banner)
+      const r = c.el.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + r.height / 2, COLORS[c.el.dataset.slot - 1]);
+    }, 120);
+  }
+}
+
+function setCount(n, prev) {
+  lastCount = n;
+  const span = $("count");
+  span.textContent = n; span.classList.remove("pop"); void span.offsetWidth; span.classList.add("pop");
+  const segs = [...$("gauge").querySelectorAll(".seg")];
+  const occupied = new Set(Object.values(cards).filter(c => c.on).map(c => +c.el.dataset.slot));
+  segs.forEach((s, i) => s.style.strokeDashoffset = occupied.has(i + 1) ? 0 : parseFloat(s.style.strokeDasharray));
+  [...$("minis").children].forEach((m, i) => m.classList.toggle("on", occupied.has(i + 1)));
+  $("headline").innerHTML = n === 0 ? "Waiting for players"
+    : n === MAX ? `<em>Full house.</em> ${n} controllers live`
+    : `<em>${n} controller${n > 1 ? "s" : ""}</em> connected`;
+  $("subline").textContent = n === 0 ? "Open the SHUCLAW app on your phone. It finds this PC by itself."
+    : n === MAX ? "Every slot is taken. Game on."
+    : `Room for ${MAX - n} more. Another phone = another player.`;
+  if (prev >= 0 && n !== prev) glitchLogo();
+}
+
+function sparkPush(c, v) {
+  c.pings.push(v); if (c.pings.length > 24) c.pings.shift();
+  const max = Math.max(40, ...c.pings);
+  c.spark.setAttribute("points", c.pings.map((p, i) => `${(i / 23) * 64},${20 - (p / max) * 18}`).join(" "));
+}
+setInterval(() => {   // sample latency into the sparklines once a second
+  for (const c of Object.values(cards)) if (c.on) {
+    const v = parseInt(c.ms.textContent); if (!isNaN(v)) sparkPush(c, v);
+  }
+}, 1000);
+
+// ---------- info panel ----------
+let info = null, selected = 0;
+function renderInfo(d) {
+  const sameAddrs = info && JSON.stringify(info.addresses.map(a => a.url)) === JSON.stringify(d.addresses.map(a => a.url));
+  info = d;
+  $("host").textContent = d.host;
+  $("srv").textContent = `port ${d.port}`;
+  const drvOk = !d.driver_error && !d.demo;
+  $("drv").textContent = drvOk ? "ViGEmBus ready" : d.driver_error ? "not installed" : "demo mode";
+  $("drv-dot").className = "dot " + (drvOk ? "" : "warn");
+  $("banner").classList.toggle("hidden", drvOk);
+  if (!d.driver_error && d.demo) $("banner-text").textContent = "Started with --demo: inputs are shown here but no virtual controller is created.";
+  setLive(drvOk ? "live" : "demo");
+  if (sameAddrs) return;
+  if (selected >= d.addresses.length) selected = 0;
+  const box = $("addrs"); box.replaceChildren();
+  d.addresses.forEach((a, i) => {
+    const b = document.createElement("button");
+    b.className = "addr" + (i === selected ? " sel" : "");
+    b.innerHTML = `<span></span><span class="cp">copy</span>`;
+    b.firstChild.textContent = a.url.replace("http://", "");
+    b.onclick = () => {
+      selected = i; drawQR(); [...box.children].forEach((x, j) => x.classList.toggle("sel", j === i));
+      navigator.clipboard?.writeText(a.url).then(() => { b.lastChild.textContent = "copied ✓"; setTimeout(() => b.lastChild.textContent = "copy", 1200); }).catch(() => {});
+    };
+    box.append(b);
+  });
+  drawQR();
+}
+function drawQR() {
+  const a = info && info.addresses[selected];
+  if (!a || !a.qr) { $("qr").innerHTML = `<div class="noqr">${a ? a.url : "No network yet: connect Wi-Fi or USB tethering"}</div>`; return; }
+  const n = a.qr.length; let d = "";
+  a.qr.forEach((row, y) => { for (let x = 0; x < n; x++) if (row[x] === "1") d += `M${x} ${y}h1v1h-1z`; });
+  $("qr").innerHTML = `<svg viewBox="0 0 ${n} ${n}"><path d="${d}" fill="#070812"/></svg>`;
+}
+function setLive(kind) {
+  const el = $("live");
+  el.className = "live" + (kind === "live" ? "" : " " + kind);
+  el.lastChild.textContent = kind === "live" ? "LIVE" : kind === "demo" ? "PREVIEW" : "OFFLINE";
+  $("srv-dot").className = "dot" + (kind === "off" ? " bad" : "");
+  if (kind === "off") $("srv").textContent = "reconnecting…";
+}
+
+// ---------- activity log + toasts ----------
+const logItems = [];
+function onEvent(e) {
+  const color = COLORS[e.slot - 1], join = e.kind === "join";
+  logItems.unshift({ t: new Date(), color, text: `${join ? "Player " + e.slot + " joined" : "Player " + e.slot + " left"} · ${e.device}` });
+  logItems.length = Math.min(logItems.length, 7);
+  const log = $("log"); log.replaceChildren();
+  for (const it of logItems) {
+    const li = document.createElement("li");
+    li.innerHTML = `<time></time><i></i><span></span>`;
+    li.children[0].textContent = it.t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    li.children[1].style.background = it.color; li.children[1].style.boxShadow = `0 0 8px ${it.color}`;
+    li.children[2].textContent = it.text;
+    log.append(li);
+  }
+  const t = document.createElement("div");
+  t.className = "toast"; t.style.setProperty("--c", color);
+  t.innerHTML = `<span class="pbadge" style="--c:${color}">P${e.slot}</span><span></span>`;
+  t.lastChild.textContent = join ? `${e.device} joined the game` : `${e.device} disconnected`;
+  $("toasts").append(t); setTimeout(() => t.remove(), 3400);
+}
+
+// ---------- particles ----------
+const fx = $("fx"), ctx = fx.getContext("2d");
+let parts = [], W = 0, H = 0;
+function resize() { W = fx.width = innerWidth * devicePixelRatio; H = fx.height = innerHeight * devicePixelRatio; }
+addEventListener("resize", resize); resize();
+const ambient = Array.from({ length: 46 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.6 + .4, v: Math.random() * .00025 + .00008, a: Math.random() * .5 + .15 }));
+function burst(x, y, color) {
+  x *= devicePixelRatio; y *= devicePixelRatio;
+  for (let i = 0; i < 90; i++) {
+    const ang = Math.random() * Math.PI * 2, sp = (Math.random() * 9 + 2) * devicePixelRatio;
+    parts.push({ x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 2, life: 1, color: Math.random() < .25 ? "#fff" : color, r: (Math.random() * 2.6 + 1) * devicePixelRatio });
+  }
+  parts.push({ ring: true, x, y, r: 10, life: 1, color });
+}
+function tick() {
+  ctx.clearRect(0, 0, W, H);
+  for (const a of ambient) {
+    a.y -= a.v; if (a.y < -.02) { a.y = 1.02; a.x = Math.random(); }
+    ctx.globalAlpha = a.a * (.6 + .4 * Math.sin(performance.now() / 900 + a.x * 20));
+    ctx.fillStyle = "#c9c2ff"; ctx.beginPath(); ctx.arc(a.x * W, a.y * H, a.r * devicePixelRatio, 0, 7); ctx.fill();
+  }
+  parts = parts.filter(p => p.life > 0);
+  for (const p of parts) {
+    ctx.globalAlpha = Math.max(p.life, 0);
+    if (p.ring) {
+      p.r += 14 * devicePixelRatio; p.life -= .03;
+      ctx.strokeStyle = p.color; ctx.lineWidth = 3 * devicePixelRatio * p.life;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.stroke();
+    } else {
+      p.x += p.vx; p.y += p.vy; p.vx *= .96; p.vy = p.vy * .96 + .25 * devicePixelRatio; p.life -= .016;
+      ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+    }
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+addEventListener("pointermove", e => {
+  document.documentElement.style.setProperty("--mx", e.clientX + "px");
+  document.documentElement.style.setProperty("--my", e.clientY + "px");
+});
+function glitchLogo() { const l = $("logo"); l.classList.remove("glitch"); void l.offsetWidth; l.classList.add("glitch"); }
+setInterval(() => Math.random() < .5 && glitchLogo(), 7000);
+
+// ---------- live feed from the server ----------
+let sock = null;
+function connect() {
+  sock = new WebSocket(`ws://${location.host}/dash`);
+  sock.onmessage = ev => {
+    const d = JSON.parse(ev.data);
+    if (d.type === "state") render(d);
+    else if (d.type === "info") renderInfo(d);
+    else if (d.type === "event") onEvent(d);
+  };
+  sock.onclose = () => { setLive("off"); setTimeout(connect, 1200); };
+}
+setInterval(() => sock && sock.readyState === 1 && sock.send("info"), 8000);   // pick up new networks (USB tethering)
+setCount(0, -1);
+connect();
+</script>
+</body>
+</html>
